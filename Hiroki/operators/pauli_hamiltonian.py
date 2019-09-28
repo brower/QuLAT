@@ -4,7 +4,7 @@ Created on Sep 27, 2019
 @author: kwibu
 '''
 import itertools
-from sigma_operators import Sigma
+from operators.sigma_operators import Sigma
 from utils.matrix_operations import tensor_prod
 class PauliOperator:
     def __init__(self, coef, pauli, n_sites=None):
