@@ -41,7 +41,7 @@ class PauliOperator:
         
         
         
-class PauliHamiltonian:
+class PauliHamiltonian(object):
     def __init__(self, coef_list, pauli_list, n_sites = None):
         """
         PauliHamiltonian class. Defines a Hamiltonian in pauli basis (sum_k(h_k*P_k)). 
