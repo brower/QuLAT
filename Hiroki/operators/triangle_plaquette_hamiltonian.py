@@ -30,11 +30,12 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
                 pauli_list.append({j+(s%n_layers)*3: "X", j+((s+1)%n_layers)*3: "X"})
                 pauli_list.append({j+(s%n_layers)*3: "Y", j+((s+1)%n_layers)*3: "Y"})
                 
+            
             # Plaqutte terms
-            coef_list += [-1/(2*g**2), 1/(2*g**2), 1/(2*g**2), 1/(2*g**2)]
-            pauli_list += [{0+(s%n_layers)*3: "X", 1+(s%n_layers)*3: "X", 2+(s%n_layers)*3: "X"}, 
-                           {0+(s%n_layers)*3: "X", 1+(s%n_layers)*3: "Y", 2+(s%n_layers)*3: "Y"}, 
-                           {0+(s%n_layers)*3: "Y", 1+(s%n_layers)*3: "X", 2+(s%n_layers)*3: "Y"},
-                           {0+(s%n_layers)*3: "Y", 1+(s%n_layers)*3: "Y", 2+(s%n_layers)*3: "X"}]
+            coef_list += [-1/(8*g**2), 1/(8*g**2), 1/(8*g**2), 1/(8*g**2)]
+            pauli_list += [{0+s*3: "X", 1+s*3: "X", 2+s*3: "X"}, 
+                           {0+s*3: "X", 1+s*3: "Y", 2+s*3: "Y"}, 
+                           {0+s*3: "Y", 1+s*3: "X", 2+s*3: "Y"},
+                           {0+s*3: "Y", 1+s*3: "Y", 2+s*3: "X"}]
         super(TrianglePlaquetteHamiltonian, self).__init__(coef_list, pauli_list, n_sites=n_sites)
         
