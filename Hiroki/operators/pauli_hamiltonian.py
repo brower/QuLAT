@@ -17,7 +17,7 @@ class PauliOperator:
         paulis: dictionary of {int: string}, the key integer represents the site the sigma is applied, 
                 and string ("X", "Y", or "Z") represents the type of the sigma. 
         n_sites (optional): int, number of lattice sites in the system. If None, the biggest site number in the pauli_list.
-        matrix: matrix form of the operator. Notice that it is not computed until matrix_form function is run. 
+        matrix: matrix form of the operator. Notice that it is not computed until _compute_matrix function is run. 
         """
         self.coef = coef
         self.pauli = pauli
@@ -72,7 +72,8 @@ class PauliHamiltonian(object):
         coef_list: list of float, list of coefficients for each pauli terms. 
         pauli_list: list of dictionary of {int: string}, the key integer of the dictionary represents 
                 the site the sigma is applied, and string ("X", "Y", or "Z") represents the type of the sigma.
-        n_sites (optional): int, number of lattice sites in the system. If None, the biggest site number in the pauli_list. 
+        n_sites (optional): int, number of lattice sites in the system. If None, the biggest site number in the pauli_list.
+        matrix: matrix form of the hamiltonian. Notice that it is not computed until _compute_matrix function is run.  
         """
         assert(len(coef_list) == len(pauli_list)), "The length of the list of coefficients (%d) and the list of pauli operators (%d) do not match" %(len(coef_list), len(pauli_list))
         self.n_sites = n_sites if n_sites is not None else max(itertools.chain.from_iterable([list(p.keys()) for p in pauli_list]))+1
