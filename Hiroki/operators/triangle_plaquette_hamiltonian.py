@@ -97,7 +97,6 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             self.permuted_matrix = coo_matrix.tocsr()
         return self.permuted_matrix if sparse else self.permuted_matrix.toarray()
     
-<<<<<<< HEAD
     def trotter_circuit_optimized(self, q_circuit, qr, T, n_steps):
         """
         Add a quantum circuit for Trotterization for the single triangle plaquette Hamiltonian with T time evolution to q_circuit. (e^(-iHT))
@@ -124,7 +123,6 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             for s in range(self.n_layers):
                 q_circuit = trotter_plaquette(q_circuit, qr, [3*s, 3*s+1, 3*s+2], -1/(2*self.g**2), deltaT)
         return q_circuit
-=======
     def block_sectors(self, sparse = False):
         """
         Return block sectors of Hamiltonian permutated taking account of eigenvalues of the gauge transformation operators: J12^2+J23^2+J31^2.
@@ -147,5 +145,4 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             sectors.append(sec if sparse else sec.toarray())
             
         return sectors
->>>>>>> branch 'master' of https://github.com/brower/QuLAT.git
     
