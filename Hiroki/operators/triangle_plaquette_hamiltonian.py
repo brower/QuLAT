@@ -62,8 +62,12 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
         """
         Compute Hamiltonian permutated by the values of eigenvalues of the gauge transformation operators: J12^2+J23^2+J31^2.
         
+        Arguments:
+        sparse: bool, True if you want a sparse matrix as return. 
+        
         Return:
-        numpy array, the permutated Hamiltonian (in dense form)
+        scipy.sparse.csr_matrix(if sparse=False), or numpy array(if sparse=True), 
+            the permutated Hamiltonian sparse = False
         """
         if self.permuted_matrix is None: 
             # Define gauge rotation operators
@@ -82,6 +86,7 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             dtype=[('val', 'float'), ('ind', 'int')]
             squared_sum = np.array([(val, ind) for val, ind in enumerate(np.square(D12) + np.square(D23) + np.square(D31))], dtype=dtype)
             perm = np.argsort(squared_sum, order=['ind', 'val'])
+            self.gauge_eigs = (np.square(D12) + np.square(D23) + np.square(D31))[perm]
             
             if self.matrix is None:
                 self._compute_matrix()
@@ -92,6 +97,7 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             self.permuted_matrix = coo_matrix.tocsr()
         return self.permuted_matrix if sparse else self.permuted_matrix.toarray()
     
+<<<<<<< HEAD
     def trotter_circuit_optimized(self, q_circuit, qr, T, n_steps):
         """
         Add a quantum circuit for Trotterization for the single triangle plaquette Hamiltonian with T time evolution to q_circuit. (e^(-iHT))
@@ -118,4 +124,28 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             for s in range(self.n_layers):
                 q_circuit = trotter_plaquette(q_circuit, qr, [3*s, 3*s+1, 3*s+2], -1/(2*self.g**2), deltaT)
         return q_circuit
+=======
+    def block_sectors(self, sparse = False):
+        """
+        Return block sectors of Hamiltonian permutated taking account of eigenvalues of the gauge transformation operators: J12^2+J23^2+J31^2.
+        
+        Arguments:
+        sparse: bool, True if you want a sparse matrix as return. 
+        
+        Return:
+        scipy.sparse.csr_matrix(if sparse=False), or numpy array(if sparse=True), 
+            the permutated Hamiltonian sparse = False
+        """
+        
+        if self.permuted_matrix is None:
+            self.gauge_rotation_basis(sparse=True)
+        
+        sectors = []
+        for p in np.unique(self.gauge_eigs):
+            ind = np.where(self.gauge_eigs == p)[0]
+            sec = self.permuted_matrix[ind[:, None], ind]
+            sectors.append(sec if sparse else sec.toarray())
+            
+        return sectors
+>>>>>>> branch 'master' of https://github.com/brower/QuLAT.git
     
