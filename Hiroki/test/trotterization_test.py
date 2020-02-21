@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 '''
 Created on Sep 27, 2019
 
@@ -34,7 +33,6 @@ plt.xlabel('# Steps')
 plt.ylabel('Spectrum')
 plt.show()
 
-=======
 '''
 Created on Sep 27, 2019
 
@@ -57,4 +55,3 @@ circ.draw(filename='unitary.jpg', output='mpl')
 job = execute(circ, backend)
 print(expm(-1j*H.matrix_form()*0.1))
 print(job.result().get_unitary(circ, decimals=3))
->>>>>>> branch 'master' of https://github.com/brower/QuLAT.git

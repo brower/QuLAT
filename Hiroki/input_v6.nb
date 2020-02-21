@@ -1,0 +1,137 @@
+Sigma[0] = SparseArray[IdentityMatrix[2]];
+Sigma[1] = SparseArray[{{0, 1}, {1, 0}}];
+Sigma[2] = SparseArray[{{0, -I}, {I, 0}}];
+Sigma[3] = SparseArray[{{1, 0}, {0, -1}}];
+SigmaP = (Sigma[1] + I*Sigma[2])/2;
+SigmaM = (Sigma[1] - I*Sigma[2])/2;
+
+
+FullSigma[ a_, j_, nQubit_] := 
+ KroneckerProduct[IdentityMatrix[2^(nQubit - j - 1)], Sigma[a], 
+  IdentityMatrix[2^j]]
+MatrixForm[FullSigma[3, 1, 2]]
+
+NQubits = 12
+
+Bsingle[s_, nQubit_] := 
+  KroneckerProduct[ IdentityMatrix[2^(3*(s - 1))], SigmaP, SigmaP, 
+    SigmaP, IdentityMatrix[2^(nQubit - 3*s)]] + 
+   KroneckerProduct[IdentityMatrix[2^(3*(s - 1))], SigmaM, SigmaM, 
+    SigmaM, IdentityMatrix[2^(nQubit - 3*s)]];
+B[nQubit_] := - 
+   Sum[Bsingle[s, nQubit], {s, 1, nQubit/3}]  + (nQubit/
+     3)  IdentityMatrix[2^nQubit]
+Eigenvalues[B[6]]
+Eigenvalues[B[9]]
+MatrixPlot[B[6]] 
+
+Es[nQubit_] :=   
+ Sum[FullSigma[3, Mod[j + 3, nQubit], nQubit].FullSigma[3, 
+     Mod[j, nQubit], nQubit], {j, 0, 
+    nQubit - 1}] +  (nQubit - 6 Mod[nQubit, 2])*
+   IdentityMatrix[2^nQubit]
+Eigenvalues[Es[6]]
+
+XY[nQubit_] := - 
+   Sum[FullSigma[1, Mod[j + 3, nQubit], nQubit].FullSigma[1, 
+      Mod[j, nQubit], nQubit], {j, 0, nQubit - 1}] +
+  - Sum[FullSigma[2, Mod[j + 3, nQubit], nQubit].FullSigma[2, 
+      Mod[j, nQubit], nQubit], {j, 0, nQubit - 1}]  + 
+  2 nQubit * IdentityMatrix[2^nQubit] 
+Eigenvalues[SparseArrayXY[6]]
+Eigenvalues[SparseArrayXY[9]]
+MatrixPlot[XY[6]] 
+
+H[g_, alpha_, nQubit_] := 
+ SparseArray[((g^2)/2)*Es[nQubit] + (1/(2*g^2))* 
+     B[nQubit]] +  (alpha/(2*g^2))*XY[nQubit]
+
+
+
+Eigenvalues[Es[6]]
+
+Eigenvalues[B[6]]
+
+Eigenvalues[XY[6]]
+
+MatrixPlot[H[1, 1, 6]]
+
+Eigs[g_, alpha_, nQubit_, k_] := 
+ Sort[Eigenvalues[H[g, alpha, nQubit], k], Less]
+
+ListPlot[Transpose[Table[Eigs[1, c, 6, 2^6] + 18, {c, 0, 5, 0.25}]], 
+ Joined -> True]
+
+ListPlot[Eigs[1, 1, 6 , 2^6]]
+
+
+ListPlot[Eigs[0.1, 1, 6 , 2^6]]
+
+J12[nQubit_] := 
+ Sum[FullSigma[3, Mod[s*3 + 1, nQubit], nQubit] - 
+   FullSigma[3, Mod[s*3 + 2, nQubit], nQubit], {s, 0, nQubit/3 - 1}]
+J23[nQubit_] := 
+ Sum[FullSigma[3, Mod[s*3 + 2, nQubit], nQubit] - 
+   FullSigma[3, Mod[s*3 + 3, nQubit], nQubit], {s, 0, nQubit/3 - 1}]
+J31[nQubit_] := 
+ Sum[FullSigma[3, Mod[s*3 + 3, nQubit], nQubit] - 
+   FullSigma[3, Mod[s*3 + 1, nQubit], nQubit], {s, 0, nQubit/3 - 1}]
+
+D12 = Normal[Diagonal[J12[NQubits]]]
+
+D23 = Normal[Diagonal[J23[NQubits]]]
+
+D31 = Normal[Diagonal[J31[NQubits]]]
+
+D12 + D23 + D31
+
+Sort[D12^2 +  D23 ^2 + D31^2]
+
+perm = Ordering[D12^2 + D23^2 + D31^2]
+
+NZero = Count[D12^2 + D23^2 + D31^2, 0]
+
+PermHamiltonian[g_, alpha_, nQubits_] := 
+ H[g, alpha, nQubits][[perm, perm]]
+
+MatrixPlot[PermHamiltonian[1, 1, NQubits]]
+
+ZeroHamiltonian[g_, alpha_, nQubits_]  := 
+ PermHamiltonian[g, alpha, nQubits][[1 ;; NZero, 1 ;; NZero]]
+ZeroH = ZeroHamiltonian[1, 1, NQubits];
+MatrixPlot[ZeroH]
+
+EigenSpectra1 = Sort[Eigenvalues[ZeroH] // N]
+
+EigenSpectra2 = Sort[Eigenvalues[ZeroHamiltonian[0.1, 1.0, NQubits]] // N]
+
+lambda0 = EigenSpectra2 [[1]] // N
+
+lambda1 = EigenSpectra2 [[2]] // N
+
+NormalizedSpectra = (1/(lambda1 - lambda0)) ( EigenSpectra2 + lambda1 - 2 lambda0) // N
+
+Dia[n_] := Table[i^2, {i, -n, n}]
+Dia[5]
+
+Mat[n_, g_] :=
+ Table[ (g^2/2) KroneckerDelta[i, j] i^2 + (1/g^2) ( 
+     2 KroneckerDelta[i, j] -  KroneckerDelta[i, j + 1] - 
+      KroneckerDelta[i, j - 1]), {i, -n, n}, {j, -n, n}]
+MatrixForm[Mat[4, g]]
+
+ListPlot[Sort[Re[Eigenvalues[(2/0.795^2) Mat[10, 0.795]]], Less]]
+
+ListPlot[Sort[Re[Eigenvalues[Mat[10, 0.6]]], Less]]
+
+Dat = Table[
+   Sort[Re[Eigenvalues[Mat[18, g], Method -> "Banded"]], Less], {g, 
+    0.1, 2.1, 0.05}];
+
+ListPlot[Transpose[Dat], Joined -> True, PlotRange -> {0, 40}]
+
+Length[Dat]
+
+ListPlot[{Dat[[41]], Dat[[1]]}]
+
+ListPlot[{Dat[[1]], Sort[Eigenvalues[ZeroHamiltonian[0.1, 1, 6]]]}]

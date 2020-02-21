@@ -7,6 +7,8 @@ import itertools
 from operators.sigma_operators import Sigma
 from utils.matrix_operations import tensor_prod
 from scipy.linalg import eig
+from quantum_circuit.trotterization import trotter_pauli
+
 class PauliOperator:
     def __init__(self, coef, pauli, n_sites=None):
         """
@@ -15,7 +17,7 @@ class PauliOperator:
         members:
         coef: float, coefficient corresponding to the pauli operator.
         paulis: dictionary of {int: string}, the key integer represents the site the sigma is applied, 
-                and string ("X", "Y", or "Z") represents the type of the sigma. 
+                and string ("I", "X", "Y", or "Z") represents the type of the sigma. 
         n_sites (optional): int, number of lattice sites in the system. If None, the biggest site number in the pauli_list.
         matrix: matrix form of the operator. Notice that it is not computed until _compute_matrix function is run. 
         """
@@ -110,4 +112,21 @@ class PauliHamiltonian(object):
         if self.matrix is None:
             self._compute_matrix()
         return eig(self.matrix.toarray())
+    
+    def trotter_circuit(self, q_circuit, qr, T, n_steps):
+        """
+        Add a quantum circuit for Trotterization for the pauli Hamiltonian with T time evolution to q_circuit. (e^(-iHT))
+        Arguments:
+        q_circuit: qiskit.QuantumCircuit, the target circuit
+        qr: qiskit.QunatumRegister, the input qubit state
+        T: float, evolution time
+        n_steps: int, number of Trotterization steps
+        
+        Return:
+        qiskit.QuantumCircuit, the circuit after added the trotterization operation. 
+        """
+        for d in range(n_steps):
+            for p in self.pauli_op_list:
+                q_circuit = trotter_pauli(q_circuit, qr, p, T/n_steps)
+        return q_circuit
     

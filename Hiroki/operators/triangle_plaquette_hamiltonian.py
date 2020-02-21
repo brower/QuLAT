@@ -7,6 +7,7 @@ import numpy as np
 import scipy.sparse
 import itertools
 from operators.pauli_hamiltonian import PauliHamiltonian
+from quantum_circuit.trotterization import trotter_electric, trotter_coupling, trotter_plaquette
 
 class TrianglePlaquetteHamiltonian(PauliHamiltonian):
     def __init__(self, g, alpha, n_layers):
@@ -22,7 +23,9 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
         permuted_matrix: permuted Hamiltonian. Notice that it is not computed until gauge_rotation_basis function is run. 
         """
         self.n_layers = n_layers
-        n_sites = n_layers*3
+        self.n_sites = n_layers*3
+        self.g = g
+        self.alpha = alpha
         coef_list = []
         pauli_list = []
         for s in range(n_layers):
@@ -33,18 +36,26 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
                 
             # Coupling terms
             for j in range(3):
-                coef_list += [alpha, alpha]
+                coef_list += [alpha/(4*g**2), alpha/(4*g**2)]
                 pauli_list.append({j+(s%n_layers)*3: "X", j+((s+1)%n_layers)*3: "X"})
                 pauli_list.append({j+(s%n_layers)*3: "Y", j+((s+1)%n_layers)*3: "Y"})
-                
-            
             # Plaqutte terms
             coef_list += [-1/(8*g**2), 1/(8*g**2), 1/(8*g**2), 1/(8*g**2)]
             pauli_list += [{0+s*3: "X", 1+s*3: "X", 2+s*3: "X"}, 
                            {0+s*3: "X", 1+s*3: "Y", 2+s*3: "Y"}, 
                            {0+s*3: "Y", 1+s*3: "X", 2+s*3: "Y"},
                            {0+s*3: "Y", 1+s*3: "Y", 2+s*3: "X"}]
-        super(TrianglePlaquetteHamiltonian, self).__init__(coef_list, pauli_list, n_sites=n_sites)
+        """
+        # shift the spectrum to positive
+        coef_list.append((g**2/2)*(n_sites - 6*(n_layers%2)))
+        pauli_list.append({j+(s%n_layers)*3: "I", j+((s+1)%n_layers)*3: "I"})
+        coef_list.append((alpha/(2*g**2))*(2*n_sites))
+        pauli_list.append({j+(s%n_layers)*3: "I", j+((s+1)%n_layers)*3: "I"})
+                
+        coef_list.append((1/(2*g**2))*(n_layers))
+        auli_list.append({0+s*3: "I", 1+s*3: "I", 2+s*3: "I"})
+        """
+        super(TrianglePlaquetteHamiltonian, self).__init__(coef_list, pauli_list, n_sites=self.n_sites)
         self.permuted_matrix = None
         
     def gauge_rotation_basis(self, sparse=False):
@@ -80,4 +91,31 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             coo_matrix.col = np.array([np.where(perm == ind)[0][0] for ind in coo_matrix.col])
             self.permuted_matrix = coo_matrix.tocsr()
         return self.permuted_matrix if sparse else self.permuted_matrix.toarray()
+    
+    def trotter_circuit_optimized(self, q_circuit, qr, T, n_steps):
+        """
+        Add a quantum circuit for Trotterization for the single triangle plaquette Hamiltonian with T time evolution to q_circuit. (e^(-iHT))
+        Arguments:
+        q_circuit: qiskit.QuantumCircuit, the target circuit
+        qr: qiskit.QunatumRegister, the input qubit state
+        T: float, evolution time
+        n_steps: int, number of Trotterization steps
+        
+        Return:
+        qiskit.QuantumCircuit, the circuit after added the trotterization operation. 
+        """
+        deltaT = T/n_steps
+        for d in range(n_steps):
+            # Electric terms
+            for s in range(self.n_layers):
+                for j in range(3):
+                    q_circuit = trotter_electric(q_circuit, qr, [j+s*3, (j+(s+1)*3)%6], self.g**2/2, deltaT)
+            # Coupling terms
+            for s in range(self.n_layers):
+                for j in range(3):
+                    q_circuit = trotter_coupling(q_circuit, qr, [j+s*3, (j+(s+1)*3)%6], self.alpha/(2*self.g**2), deltaT)
+            # Plaquette terms
+            for s in range(self.n_layers):
+                q_circuit = trotter_plaquette(q_circuit, qr, [3*s, 3*s+1, 3*s+2], -1/(2*self.g**2), deltaT)
+        return q_circuit
     
