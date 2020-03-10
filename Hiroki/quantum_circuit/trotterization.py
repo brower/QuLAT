@@ -19,6 +19,7 @@ def trotter_pauli(q_circuit, qr, pauli_op, deltaT, unitary_sim = False):
     pauli_op: operators.pauli_hamiltonian.PauliOperator, the target pauli operator
     deltaT: small time step
     unitary_sim: bool, True if the simulation is to get the unitary. Due to the bug for qiskit Aer >= 0.3.0.
+    
     Return:
     qiskit.QuantumCircuit, the circuit after added the trotterization step.
     """ 
@@ -59,7 +60,7 @@ def trotter_pauli(q_circuit, qr, pauli_op, deltaT, unitary_sim = False):
             q_circuit.rx(-np.pi/2, qr[j])
     return q_circuit
 
-def trotter_electric(q_circuit, qr, target_indices, coef, deltaT):
+def trotter_electric(q_circuit, qr, target_indices, coef, deltaT, unitary_sim = False, further_opt = False):
     """
     Trotter step for one electric term
     (S^z + S^z)^2
@@ -69,6 +70,9 @@ def trotter_electric(q_circuit, qr, target_indices, coef, deltaT):
     target_inidices: list of int, the target indices of the plaquette
     coef: float, coefficient corresponding to the plaquette term
     deltaT: small time step
+    unitary_sim: bool, True if the simulation is to get the unitary. Due to the bug for qiskit Aer >= 0.3.0.
+    further_opt: bool, if True, then the CNOTs in the uncomputing stage are combined with those in trotter_coupling and removed. 
+    
     Return:
     qiskit.QuantumCircuit, the circuit after added the trotterization step.
     """ 
@@ -77,17 +81,21 @@ def trotter_electric(q_circuit, qr, target_indices, coef, deltaT):
     # Add e^(-i*coef*dt*Z) to the last qubit
 
     q_circuit.u1(coef*deltaT, qr[target_indices[1]])
-    q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[1]])
-    #q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[1]])
+    if unitary_sim:
+        q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
+    else:
+        q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
     q_circuit.u1(-coef*deltaT, qr[target_indices[1]])
-    q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[1]])
-    #q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[1]])
+    if unitary_sim:
+        q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
+    else:
+        q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
     
-    #q_circuit.unitary(Operator([[np.exp(-1j*coef*deltaT), 0], [0, np.exp(1j*coef*deltaT)]]), [target_indices[1]], label='rzz')
-    q_circuit.cx(qr[target_indices[0]], qr[target_indices[1]])
+    if not further_opt:
+        q_circuit.cx(qr[target_indices[0]], qr[target_indices[1]])
     return q_circuit
 
-def trotter_coupling(q_circuit, qr, target_indices, coef, deltaT):
+def trotter_coupling(q_circuit, qr, target_indices, coef, deltaT, further_opt = False):
     """
     Trotter step for one coupling term
     S^+ otimes S^- + h.c.
@@ -97,11 +105,14 @@ def trotter_coupling(q_circuit, qr, target_indices, coef, deltaT):
     target_inidices: list of int, the target indices of the plaquette
     coef: float, coefficient corresponding to the plaquette term
     deltaT: small time step
+    further_opt: bool, if True, then the CNOTs in the incomputing stage are combined with those in trotter_electric and removed. 
+    
     Return:
     qiskit.QuantumCircuit, the circuit after added the trotterization step.
     """ 
     assert(len(target_indices)==2), "List of target indices for a coupling term with invalid length is given."
-    q_circuit.cx(qr[target_indices[1]], qr[target_indices[0]])
+    if not further_opt:
+        q_circuit.cx(qr[target_indices[1]], qr[target_indices[0]])
     q_circuit = add_crx(q_circuit, coef*deltaT, qr[target_indices[0]], qr[target_indices[1]])
     q_circuit.cx(qr[target_indices[1]], qr[target_indices[0]])
     return q_circuit

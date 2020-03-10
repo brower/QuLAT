@@ -97,7 +97,7 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
             self.permuted_matrix = coo_matrix.tocsr()
         return self.permuted_matrix if sparse else self.permuted_matrix.toarray()
     
-    def trotter_circuit_optimized(self, q_circuit, qr, T, n_steps):
+    def trotter_circuit_optimized(self, q_circuit, qr, T, n_steps, unitary_sim = False, further_opt = True):
         """
         Add a quantum circuit for Trotterization for the single triangle plaquette Hamiltonian with T time evolution to q_circuit. (e^(-iHT))
         Arguments:
@@ -105,22 +105,28 @@ class TrianglePlaquetteHamiltonian(PauliHamiltonian):
         qr: qiskit.QunatumRegister, the input qubit state
         T: float, evolution time
         n_steps: int, number of Trotterization steps
-        
+        unitary_sim: bool, True if the simulation is to get the unitary. Due to the bug for qiskit Aer >= 0.3.0.
+    
         Return:
         qiskit.QuantumCircuit, the circuit after added the trotterization operation. 
         """
         deltaT = T/n_steps
         for d in range(n_steps):
-            # Electric terms
             for s in range(self.n_layers):
-                for j in range(3):
-                    q_circuit = trotter_electric(q_circuit, qr, [j+s*3, (j+(s+1)*3)%6], self.g**2/2, deltaT)
-            # Coupling terms
-            for s in range(self.n_layers):
-                for j in range(3):
-                    q_circuit = trotter_coupling(q_circuit, qr, [j+s*3, (j+(s+1)*3)%6], self.alpha/(2*self.g**2), deltaT)
-            # Plaquette terms
-            for s in range(self.n_layers):
+                if self.n_layers > 2 or s == 0:
+                    coef_doubler = 2 if self.n_layers == 2 else 1 # multiply the coefficients by 2 if we have 2 layers since we use only one Electric and Coupling circuits respectively. 
+                    # Electric terms
+                    for j in range(3):
+                        q_circuit = trotter_electric(q_circuit, qr, [j+s*3, (j+(s+1)*3)%6], coef_doubler*self.g**2/2, deltaT, unitary_sim, further_opt)
+                    # Coupling terms
+                    if further_opt and self.n_layers == 2:
+                        for j in range(3):
+                            q_circuit = trotter_coupling(q_circuit, qr, [j+3, j], coef_doubler*self.alpha/(2*self.g**2), deltaT, further_opt)
+                    else:
+                        for j in range(3):
+                            q_circuit = trotter_coupling(q_circuit, qr, [j+s*3, (j+(s+1)*3)%6], coef_doubler*self.alpha/(2*self.g**2), deltaT, further_opt)
+                
+                # Plaquette terms
                 q_circuit = trotter_plaquette(q_circuit, qr, [3*s, 3*s+1, 3*s+2], -1/(2*self.g**2), deltaT)
         return q_circuit
     def block_sectors(self, sparse = False):
