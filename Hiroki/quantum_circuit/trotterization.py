@@ -10,7 +10,7 @@ from utils.circuits import add_crx, add_ccrx
 from qiskit.quantum_info.operators import Operator
 
 
-def trotter_pauli(q_circuit, qr, pauli_op, deltaT):
+def trotter_pauli(q_circuit, qr, pauli_op, deltaT, unitary_sim = False):
     """
     Trotter step for one general pauli term
     Arguments:
@@ -18,6 +18,7 @@ def trotter_pauli(q_circuit, qr, pauli_op, deltaT):
     qr: qiskit.QunatumRegister, the input qubit state
     pauli_op: operators.pauli_hamiltonian.PauliOperator, the target pauli operator
     deltaT: small time step
+    unitary_sim: bool, True if the simulation is to get the unitary. Due to the bug for qiskit Aer >= 0.3.0.
     Return:
     qiskit.QuantumCircuit, the circuit after added the trotterization step.
     """ 
@@ -34,11 +35,15 @@ def trotter_pauli(q_circuit, qr, pauli_op, deltaT):
         q_circuit.cx(qr[target_indices[i]], qr[target_indices[i+1]])
     # Add e^(-i*coef*dt*Z) to the last qubit
     q_circuit.u1(pauli_op.coef*deltaT, qr[target_indices[-1]])
-    q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
-    #q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
+    if unitary_sim:
+        q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
+    else:
+        q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
     q_circuit.u1(-pauli_op.coef*deltaT, qr[target_indices[-1]])
-    q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
-    #q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
+    if unitary_sim:
+        q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
+    else:
+        q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
     
     #q_circuit.unitary(Operator([[np.exp(-1j*pauli_op.coef*deltaT), 0], [0, np.exp(1j*pauli_op.coef*deltaT)]]), [target_indices[-1]], label='rzz')
     
