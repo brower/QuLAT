@@ -17,7 +17,6 @@ def matmul(mat_list):
     Return:
     prod: numpy array, the result
     """
-    
     if len(mat_list) <= 1:
         prod = mat_list[0]
     else:

@@ -60,7 +60,7 @@ def trotter_pauli(q_circuit, qr, pauli_op, deltaT, unitary_sim = False):
             q_circuit.rx(-np.pi/2, qr[j])
     return q_circuit
 
-def trotter_electric(q_circuit, qr, target_indices, coef, deltaT, unitary_sim = False, further_opt = False):
+def trotter_electric(q_circuit, target_indices, coef, deltaT, unitary_sim = False, further_opt = False):
     """
     Trotter step for one electric term
     (S^z + S^z)^2
@@ -77,25 +77,25 @@ def trotter_electric(q_circuit, qr, target_indices, coef, deltaT, unitary_sim = 
     qiskit.QuantumCircuit, the circuit after added the trotterization step.
     """ 
     assert(len(target_indices)==2), "List of target indices for a coupling term with invalid length is given."
-    q_circuit.cx(qr[target_indices[0]], qr[target_indices[1]])
+    q_circuit.cx(target_indices[0], target_indices[1])
     # Add e^(-i*coef*dt*Z) to the last qubit
 
-    q_circuit.u1(coef*deltaT, qr[target_indices[1]])
+    q_circuit.u1(coef*deltaT, target_indices[1])
     if unitary_sim:
         q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
     else:
-        q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
-    q_circuit.u1(-coef*deltaT, qr[target_indices[1]])
+        q_circuit.u3(np.pi, 0, np.pi, target_indices[-1])
+    q_circuit.u1(-coef*deltaT, target_indices[1])
     if unitary_sim:
         q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
     else:
-        q_circuit.u3(np.pi, 0, np.pi, qr[target_indices[-1]])
+        q_circuit.u3(np.pi, 0, np.pi, target_indices[-1])
     
     if not further_opt:
-        q_circuit.cx(qr[target_indices[0]], qr[target_indices[1]])
+        q_circuit.cx(target_indices[0], target_indices[1])
     return q_circuit
 
-def trotter_coupling(q_circuit, qr, target_indices, coef, deltaT, further_opt = False):
+def trotter_coupling(q_circuit, target_indices, coef, deltaT, further_opt = False):
     """
     Trotter step for one coupling term
     S^+ otimes S^- + h.c.
@@ -112,12 +112,12 @@ def trotter_coupling(q_circuit, qr, target_indices, coef, deltaT, further_opt = 
     """ 
     assert(len(target_indices)==2), "List of target indices for a coupling term with invalid length is given."
     if not further_opt:
-        q_circuit.cx(qr[target_indices[1]], qr[target_indices[0]])
-    q_circuit = add_crx(q_circuit, coef*deltaT, qr[target_indices[0]], qr[target_indices[1]])
-    q_circuit.cx(qr[target_indices[1]], qr[target_indices[0]])
+        q_circuit.cx(target_indices[1], target_indices[0])
+    q_circuit = add_crx(q_circuit, coef*deltaT, target_indices[0], target_indices[1])
+    q_circuit.cx(target_indices[1], target_indices[0])
     return q_circuit
 
-def trotter_plaquette(q_circuit, qr, target_indices, coef, deltaT):
+def trotter_plaquette(q_circuit, target_indices, coef, deltaT):
     """
     Trotter step for one plaquette term
     S^+ otimes S^+ otimes S^+ + h.c.
@@ -133,18 +133,16 @@ def trotter_plaquette(q_circuit, qr, target_indices, coef, deltaT):
     assert(len(target_indices)==3), "List of target indices for a plaquette term with invalid length is given."
     # Add cnot gates to target qubits
     for i in range(2):
-        q_circuit.cx(qr[target_indices[i+1]], qr[target_indices[i]])
-        q_circuit.x(qr[target_indices[i]])
-        #q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[i]])
-    
+        q_circuit.cx(target_indices[i+1], target_indices[i])
+        q_circuit.u3(np.pi, 0, np.pi, target_indices[i])    
     # Add CCRX gate
-    q_circuit = add_ccrx(q_circuit, coef*deltaT, qr[target_indices[0]], qr[target_indices[1]], qr[target_indices[2]])
+    q_circuit = add_ccrx(q_circuit, coef*deltaT, target_indices[0], target_indices[1], target_indices[2])
     
     # Add cnot gates to target qubits
     for i in range(2)[::-1]:
-        q_circuit.x(qr[target_indices[i]])
+        q_circuit.u3(np.pi, 0, np.pi, target_indices[i])
         #q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[i]])
-        q_circuit.cx(qr[target_indices[i+1]], qr[target_indices[i]])
+        q_circuit.cx(target_indices[i+1], target_indices[i])
     
     return q_circuit
 
