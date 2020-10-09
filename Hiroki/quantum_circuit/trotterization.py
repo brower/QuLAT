@@ -85,7 +85,7 @@ def trotter_electric(q_circuit, target_indices, coef, deltaT, unitary_sim = Fals
         q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
     else:
         q_circuit.u3(np.pi, 0, np.pi, target_indices[-1])
-    q_circuit.u1(-coef*deltaT, target_indices[1])
+    q_circuit.u1(-coef*deltaT, target_indices[-1])
     if unitary_sim:
         q_circuit.unitary(Operator([[0, 1], [1, 0]]), [target_indices[-1]])
     else:

@@ -34,7 +34,7 @@ sig.append(np.array([[1, 0], [0, -1]]))
         
 def noise_mitigation_gate(circ_func, n_qubits, device_backend, input_mapping, shots = 1024, simulation = True):
     """
-    Compute the diagonal elements of the process matrix of the noise mitigation gate
+    Compute the process matrix of the noise mitigation gate
     
     Arguments:
     circ_func: function(qiskit.QuantumCircuit, input_mapping, unitary_sim), the function that constructs the target circuit structure on the given qiskit.QuantumCircuit
@@ -46,13 +46,14 @@ def noise_mitigation_gate(circ_func, n_qubits, device_backend, input_mapping, sh
     """
     
     """ COMPUTE THE MATRIX SIGMA AND ITS INVERSE: SIGMA = Tr[P_k P_i P_l P_j]/d """
-    SigTensor1 = np.zeros([4, 4, 4], dtype=complex)
+    SigTensor1 = np.zeros([4, 4, 4, 4], dtype=complex)
     for i in range(4):
-        for k in range(4):
-            for l in range(4):
-                SigTensor1[k, l, i] = np.trace(matmul([sig[k], sig[i], sig[l], sig[i]]))/2
-    SigMat = np.reshape(tensor_prod([SigTensor1 for i in range(n_qubits)]), [4**(2*n_qubits), 4**(n_qubits)])
-    SigMat_H = np.conjugate(SigMat).T 
+        for j in range(4):
+            for k in range(4):
+                for l in range(4):
+                    SigTensor1[k, l, i, j] = np.trace(matmul([sig[k], sig[i], sig[l], sig[j]]))/2
+    SigMat = np.reshape(tensor_prod([SigTensor1 for i in range(n_qubits)]), [4**(2*n_qubits), 4**(2*n_qubits)])
+    #SigMat_H = np.conjugate(SigMat).T 
                    
     """ COMPUTE THE REFERENCE STATES: rho_i """
     # Compute the 1-qubit states that are bases of X, Y, Z
@@ -88,7 +89,7 @@ def noise_mitigation_gate(circ_func, n_qubits, device_backend, input_mapping, sh
     SS = np.matmul(S_H, S)
     SS_inv = np.linalg.inv(SS)
     
-
+    
     """ COMPUTE THE PTM OF EPSILON (NOISE) """
     if simulation: 
         noise_model = NoiseModel.from_backend(device_backend)
@@ -150,25 +151,12 @@ def noise_mitigation_gate(circ_func, n_qubits, device_backend, input_mapping, sh
     ptm_eps = matmul([SS_inv, S_H, P_S]).T
     
     
-    """ COMPUTE INNER PRODUCT BETWEEN PAULIS AND REFERENCE STATES """
-    inn_mrho = np.zeros((4**n_qubits, 6**n_qubits), dtype=complex)
-    for l, inds_l in enumerate([p for p in itertools.product(list(range(4)), repeat=n_qubits)]):
-        for i in range(6**n_qubits):
-            inn_mrho[l, i] = np.trace(np.matmul(tensor_prod([sig[ind] for ind in inds_l]), ref[i]))/2**(n_qubits/2)
-    
-    
-    """ COMPUTE THE MATRIX T """
-    T = matmul([ptm_eps, inn_mrho]).T
-    T_H = np.conjugate(T).T
-    TT = np.matmul(T_H, T)
-    TT_inv = np.linalg.inv(TT)
-    
-    """ COMPUTE THE PTM OF EPSILON^-1 """
-    ptm_eps_inv = matmul([TT_inv, T_H, inn_mrho.T]).T
+    ptm_eps_inv = np.linalg.inv(ptm_eps)
     
     """ COMPUTE THE PROCESS MATRIX OF EPSILON^-1"""
     ptm_eps_inv_vec = np.reshape(ptm_eps_inv, [-1, 1])
-    chi_eps_inv_diag = np.dot(np.matmul(np.linalg.inv(np.matmul(SigMat_H, SigMat)), SigMat_H), ptm_eps_inv_vec)
+    #chi_eps_inv_diag = np.dot(np.matmul(np.linalg.inv(np.matmul(SigMat_H, SigMat)), SigMat_H), ptm_eps_inv_vec)
+    chi_eps_inv = np.dot(np.linalg.inv(SigMat), ptm_eps_inv_vec)
     
-    return chi_eps_inv_diag
-        
+    return chi_eps_inv
+    
