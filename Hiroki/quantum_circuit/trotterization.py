@@ -67,8 +67,8 @@ def trotter_electric(q_circuit, target_indices, coef, deltaT, unitary_sim = Fals
     Arguments:
     q_circuit: qiskit.QuantumCircuit, the target circuit
     qr: qiskit.QunatumRegister, the input qubit state
-    target_inidices: list of int, the target indices of the plaquette
-    coef: float, coefficient corresponding to the plaquette term
+    target_inidices: list of int, the target indices of the qubits
+    coef: float, coefficient corresponding to the term
     deltaT: small time step
     unitary_sim: bool, True if the simulation is to get the unitary. Due to the bug for qiskit Aer >= 0.3.0.
     further_opt: bool, if True, then the CNOTs in the uncomputing stage are combined with those in trotter_coupling and removed. 
